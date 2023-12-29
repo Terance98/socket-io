@@ -1,0 +1,29 @@
+<!-- public/dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+  </head>
+  <body>
+    <h1>Dashboard</h1>
+    <div id="dashboardMessages"></div>
+
+    <script
+      src="https://cdn.socket.io/4.7.2/socket.io.min.js"
+      integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      const dashboardSocket = io("/dashboard");
+
+      // Listen for messages from the dashboard
+      dashboardSocket.on("message", (data) => {
+        const messagesDiv = document.getElementById("dashboardMessages");
+        console.log(data);
+        messagesDiv.innerHTML += `<p><strong>${data.sender}:</strong> ${data.message}</p>`;
+      });
+    </script>
+  </body>
+</html>
