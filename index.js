@@ -20,8 +20,51 @@ app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// Socket.IO logic
-io.on("connection", (socket) => {
+// Define your whitelist of allowed domains or IP addresses
+const whitelist = ["localhost", "::1"];
+
+// Dashboard-client communication
+const dashboardNamespace = io.of("/dashboard");
+const clientNamespace = io.of("/client");
+
+/**
+ * This function whitelists the socket connections and ensures that we don't connect with invalid clients
+ * @param {*} socket
+ * @param {*} next
+ * @returns
+ */
+function whitelistConnection(socket, next) {
+  // Access information about the connection
+  const clientAddress = socket.handshake.address;
+  const clientDomain = socket.handshake.headers.origin;
+
+  // Can monitor the clients that try to connect
+  console.log({ clientAddress, clientDomain });
+
+  // Check if the client's domain or IP is in the whitelist
+  if (whitelist.includes(clientDomain) || whitelist.includes(clientAddress)) {
+    return next(); // Allow the connection
+  } else {
+    return next(new Error("Connection not allowed")); // Deny the connection
+  }
+}
+
+/**
+ * Applying whitelisting to all the routes
+ */
+io.use(whitelistConnection); // Ideally here instead of whitelisting, we should directly reject connection request
+dashboardNamespace.use(whitelistConnection);
+clientNamespace.use(whitelistConnection);
+
+/**
+ * Rate limiting - We should rate limit all the connections that are established between the client and the server.
+ * Any other security issue that might come up should be addressed and resolved
+ */
+
+/**
+ * Client socket connection
+ */
+clientNamespace.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
   dashboardNamespace.emit("message", {
@@ -76,8 +119,9 @@ io.on("connection", (socket) => {
   });
 });
 
-// Dashboard-client communication
-const dashboardNamespace = io.of("/dashboard");
+/**
+ * Dashboard socket connection
+ */
 dashboardNamespace.on("connection", (socket) => {
   console.log(`Dashboard connected: ${socket.id}`);
 
